@@ -1,7 +1,7 @@
 ;=========================================================================
 ; Name & Email must be EXACTLY as in Gradescope roster!
-; Name: Nina Shenoy
-; Email: nshen004@ucr.edu
+; Name:Nina Shenoy
+; Email:nshen004@ucr.edu
 ; 
 ; Assignment name: Assignment 4
 ; Lab section: 022
@@ -20,92 +20,130 @@
 ;Instructions
 ;-------------
 
-; output intro prompt
-LD R0, introPromptPtr
-PUTS
+START
 
-AND R3, R3, x0
-AND R4, R4, x0
-AND R1, R2, x0
-
-LD R4, DIGIT_COUNTER
-
-GETC
-OUT
-
-ADD R1, R0, #0
-;Check for newline
-ADD R1, R1, #-10
-BRz STOP_PROGRAM
-
-;Check for '+'
-ADD R1, R0, #0
-ADD R1, R1, #-16
-ADD R1, R1, #-16
-ADD R1, R1, #-11		;Decrement digit counter
-BRz POS_NUMBER
-
-;Check for '-'
-ADD R1, R0, #0
-ADD R1, R1, #-16
-ADD R1, R1, #-16
-ADD R1, R1, #-13
-BRz NEG_NUMBER
-
-;Check for valid input (between 0 and 9)
-ADD R1, R0, #0
-ADD R1, R1, #-16
-ADD R1, R1, #-16
-ADD R1, R1, #-16
-BRn PRINT_ERROR_MSG	;This prints error if character is less than 48 ('0')
-ADD R1, R0, #0
-ADD R1, R1, #-16
-ADD R1, R1, #-16
-ADD R1, R1, #-16
-ADD R2, R1, #0
-BRp POS_NUMBER
-
-ADD R1, R0, #0
-ADD R1, R1, #-16
-ADD R1, R1, #-16
-ADD R1, R1, #-16
-ADD R1, R1, #-9
-BRp PRINT_ERROR_MSG	;This prints error if character is greater than 48
-ADD R1, R0, #0
-ADD R1, R1, #-16
-ADD R1, R1, #-16
-ADD R1, R1, #-16
-ADD R2, R1, #0
-BRn POS_NUMBER
-
-		
-POS_NUMBER
-	
-	
-
-NEG_NUMBER
-			
-; Set up flags, counters, accumulators as needed
-; Get first character, test for '\n', '+', '-', digit/non-digit 	
-; is very first character = '\n'? if so, just quit (no message)!
-; is it = '+'? if so, ignore it, go get digits
-; is it = '-'? if so, set neg flag, go get digits
-; is it < '0'? if so, it is not a digit	- o/p error message, start over
-; is it > '9'? if so, it is not a digit	- o/p error message, start over
-; if none of the above, first character is first numeric digit - convert it to number & store in target register!			
-; Now get remaining digits (max 5) from user, testing each to see if it is a digit, and build up number in accumulator
-; remember to end with a newline!
-
-PRINT_ERROR_MSG
-	LD R0, NEWLINE
-	OUT
-	LD R0,errorMessagePtr
+	; output intro prompt
+	LD R0, introPromptPtr
 	PUTS
 
-STOP_PROGRAM
-LEA R0, STOP_PROGRAM_MSG
-PUTS			
-HALT
+	; Set up flags, counters, accumulators as needed
+	AND R1, R1, x0
+	AND R2, R2, x0		;Will hold binary number
+	AND R3, R3, x0		;Will hold neg/pos flag
+	AND R4, R4, x0
+	AND R6, R6, x0
+	AND R7, R7, x0
+	LD R5, COUNTER		;Will hold 6
+
+
+	
+	GET_INPUT
+		GETC				;Input char
+		ADD R1, R0, #0
+		ADD R1, R1, #-10
+		BRz CHECK_NEWLINE	;check if newline is first char or not
+		BRnp PRINT_CHAR
+		
+	PRINT_CHAR
+		OUT					;Prints input and checks to see if valid
+		BRnzp CHECK_INPUT
+		
+	CHECK_INPUT
+		ADD R1, R0, #0
+		ADD R1, R1, #-16
+		ADD R1, R1, #-16
+		ADD R1, R1, #-16
+		BRn CHECK_OPERATOR		;Check if less than 48 (could be + or -)
+		ADD R1, R0, #0
+		ADD R1, R1, #-16
+		ADD R1, R1, #-16
+		ADD R1, R1, #-16
+		ADD R1, R1, #-9
+		BRp PRINT_ERROR_MSG		;If greater than 57, it is always wrong
+		ADD R1, R5, #0
+		ADD R1, R1, #-6
+		BRz FIRST_DIGIT			;If 0, user has inputted the first digit
+		ADD R2, R2, R2			;Else: valid input, add stuff
+		ADD R7, R2, R2
+		ADD R7, R7, R7
+		ADD R2, R2, R7
+		
+		ADD R0, R0, -16
+		ADD R0, R0, -16
+		ADD R0, R0, -16
+		ADD R2, R2, R0
+		ADD R5, R5, #-1
+		BRp GET_INPUT
+		BRz IS_NEG
+		
+	FIRST_DIGIT
+		ADD R0, R0, -16
+		ADD R0, R0, -16
+		ADD R0, R0, -16
+		ADD R2, R0, R2
+		ADD R5, R5, -2			;converts to dec and stores in R2
+		BRnzp GET_INPUT
+		
+	
+	CHECK_OPERATOR				;Checks if the value below '0' is either '-' or '+'
+		ADD R1, R0, #0
+		ADD R1, R1, #-16
+		ADD R1, R1, #-16	
+		ADD R1, R1, #-11		;If 0, user has entered '+'
+		BRz PLUS
+		ADD R1, R0, #0
+		ADD R1, R1, #-16
+		ADD R1, R1, #-16
+		ADD R1, R1, #-13		;If 0, user has entered '-'
+		BRz MINUS
+		
+	PLUS
+		ADD R1, R5, #0
+		ADD R1, R1, #-6
+		BRnp PRINT_ERROR_MSG	;If not the first char
+		AND R1, R1, x0
+		ADD R3, R3, #0			;Set signed bit to 0
+		ADD R5, R5, #-1
+		BRnzp GET_INPUT
+		
+	MINUS
+		ADD R1, R5, #0
+		ADD R1, R1, #-6
+		BRnp PRINT_ERROR_MSG
+		AND R1, R1, x0
+		ADD R5, R5, #-1
+		ADD R3, R3, #1		;Set signed bit to 1
+		BRnzp GET_INPUT
+		
+	CHECK_NEWLINE
+		ADD R1, R5, #0
+		ADD R1, R1, #-6
+		BRz END_PROGRAM
+		BRnp IS_NEG
+		
+	IS_NEG
+		AND R1, R1, x0
+		ADD R1, R3, #0
+		BRn TWOS_COMP
+		
+	TWOS_COMP
+		NOT R2, R2
+		ADD R2, R2, #1
+		BRnzp END_PROGRAM
+		
+	
+	PRINT_ERROR_MSG
+		LD R0, NEWLINE
+		OUT
+		LD R0, errorMessagePtr
+		PUTS
+		BRnzp START
+		
+	END_PROGRAM
+		LD R0, NEWLINE
+		OUT
+		HALT
+
 
 ;---------------	
 ; Program Data
@@ -115,9 +153,10 @@ introPromptPtr		.FILL xA100
 errorMessagePtr		.FILL xA200
 STOP_PROGRAM_MSG		.STRINGZ "Exiting Program...\n"
 NEWLINE				.FILL '\n'
-DIGIT_COUNTER 		.FILL #6
+COUNTER 		.FILL #6
 MINUS_CHAR			.FILL #-45
 PLUS_CHAR			.FILL #-43
+TO_DEC				.FILL #-48
 
 
 
