@@ -42,13 +42,11 @@ START
 		ADD R1, R0, #0
 		ADD R1, R1, #-10
 		BRz CHECK_NEWLINE	;check if newline is first char or not
-		BRnp PRINT_CHAR
+		BRnp CHECK_INPUT
 		
-	PRINT_CHAR
-		OUT					;Prints input and checks to see if valid
-		BRnzp CHECK_INPUT
 		
 	CHECK_INPUT
+        OUT
 		ADD R1, R0, #0
 		ADD R1, R1, #-16
 		ADD R1, R1, #-16
@@ -71,10 +69,10 @@ START
 		ADD R0, R0, -16
 		ADD R0, R0, -16
 		ADD R0, R0, -16
-		ADD R2, R2, R0
-		ADD R5, R5, #-1
-		BRp GET_INPUT
-		BRz IS_NEG
+		ADD R2, R2, R0          ;Converts to Decimal, stores this value into R2
+		ADD R5, R5, #-1         ;Decrement counter
+		BRp GET_INPUT           ;If not 0, continue looping
+		BRz IS_NEG              ;If 0, check to see if neg flag is set
 		
 	FIRST_DIGIT
 		ADD R0, R0, -16
@@ -103,13 +101,13 @@ START
 		BRnp PRINT_ERROR_MSG	;If not the first char
 		AND R1, R1, x0
 		ADD R3, R3, #0			;Set signed bit to 0
-		ADD R5, R5, #-1
+		ADD R5, R5, #-1         ;Decrement Counter
 		BRnzp GET_INPUT
 		
 	MINUS
 		ADD R1, R5, #0
 		ADD R1, R1, #-6
-		BRnp PRINT_ERROR_MSG
+		BRnp PRINT_ERROR_MSG        ;If not first character, error
 		AND R1, R1, x0
 		ADD R5, R5, #-1
 		ADD R3, R3, #1		;Set signed bit to 1
@@ -118,19 +116,19 @@ START
 	CHECK_NEWLINE
 		ADD R1, R5, #0
 		ADD R1, R1, #-6
-		BRz END_PROGRAM
-		BRnp IS_NEG
+		BRz END_PROGRAM     ;If the newline is the first inputted character, stop program
+		BRnp IS_NEG         ;Else, input is over, check neg flag
 		
 	IS_NEG
 		AND R1, R1, x0
 		ADD R1, R3, #0
-		BRz END_PROGRAM
-		BRn TWOS_COMP
-		
+        BRz END_PROGRAM         ;Positive -> end program
+		BRn TWOS_COMP           ;Negative -> take two's complement
+    
 	TWOS_COMP
 		NOT R2, R2
 		ADD R2, R2, #1
-		BRnzp END_PROGRAM
+		BRnzp END_PROGRAM       ;End program
 		
 	
 	PRINT_ERROR_MSG
@@ -155,12 +153,6 @@ errorMessagePtr		.FILL xA200
 STOP_PROGRAM_MSG		.STRINGZ "Exiting Program...\n"
 NEWLINE				.FILL '\n'
 COUNTER 		.FILL #6
-MINUS_CHAR			.FILL #-45
-PLUS_CHAR			.FILL #-43
-TO_DEC				.FILL #-48
-
-
-
 ;------------
 ; Remote data
 ;------------
