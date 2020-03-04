@@ -12,6 +12,11 @@
 ;=================================================
 LD R7, SUB_PRINT_OPTABLE_PTR
 JSRR R7			 
+
+LD R7, SUB_FIND_OPCODE_PTR
+JSRR R7
+
+
 				 
 				 
 HALT
@@ -20,6 +25,7 @@ HALT
 ;-----------------------------------------------------------------------------------------------
 SUB_PRINT_OPTABLE_PTR .FILL x3200
 SUB_PRINT_OP_PTR .FILL x3400
+SUB_FIND_OPCODE_PTR .FILL x3600
 
 
 
@@ -163,17 +169,94 @@ CHAR_0 .FILL '0'
 ;-----------------------------------------------------------------------------------------------
 .ORIG x3600
 ;-----------------------------------------------------------------------------------------------
+ST R7, BACKUP_R7_3600
+
+LD R2, INPUT_STRING_PTR		;R2 <- x4200
+LD R7, SUB_GET_STRING_PTR	;GO to GET_STRING subroutine
+JSRR R7		
+
+LD R3, instructions_fo_ptr	;R3 <- x4100
+LD R4, opcodes_fo_ptr		;R4 <- x4000
+LD R2, INPUT_STRING_PTR
+
+AND R5, R5, x0		;R5: instruction table char
+AND R6, R6, x0	 	;R6: user input char
+AND R1, R1, x0		;Used to check parity
+	
+INSTRUCTION_LOOP
+	LDR R5, R3, x0	;R5 will have characters from instruction table
+	LDR R6, R2, x0	;R6 will have characters from user input
+	ADD R1, R5, R6
+	BRz PRINT_STUFF_1
+	NOT R6, R6
+	ADD R6, R6, #1	;Twos complement of R6
+	ADD R1, R5, R6
+	BRnp GO_TO_NEXT_INSTRUCTION
+	ADD R3, R3, #1	;Incriment pointers
+	ADD R2, R2, #1
+	BRnp INSTRUCTION_LOOP
+	
+GO_TO_NEXT_INSTRUCTION
+	ADD R3, R3, #1		;incriment instruction pointer
+	LDR R5, R3, #0		;load char into R5. If null, go to reset input string ptr
+	BRz RESET_INPUT_STRING
+	BRp GO_TO_NEXT_INSTRUCTION
+	BRn PRINT_ERROR_MSG	;if negative, reached end of table, print error
+	
+	
+CHECK_IF_END_OF_TABLE
+	ADD R3, R3, #1
+	LDR R5, R3, #0
+	BRn PRINT_ERROR_MSG
+	ADD R3, R3, #-1
+	BRnzp RESET_INPUT_STRING
+	
+RESET_INPUT_STRING
+	ADD R4, R4, #1		;Incriment opcode ptr
+	LD R2, INPUT_STRING_PTR
+	ADD R3, R3, #1
+	BRnzp INSTRUCTION_LOOP
+	
+PRINT_STUFF_1
+	LD R2, INPUT_STRING_PTR
+	INPUT_PRINT_LOOP
+		LDR R0, R2, #0
+		OUT
+		ADD R2, R2, #1
+		LDR R1, R2, #0
+		BRz PRINT_STUFF_2
+		BRp INPUT_PRINT_LOOP
+
+PRINT_STUFF_2
+	LEA R0, EQUAL
+	PUTS
+	LD R7, SUB_PRINT_OPCODE_PTR
+	JSRR R7
+	LD R0, newline
+	OUT
+	BRnzp END_FIND_OP_SUB
+
+
+PRINT_ERROR_MSG
+	LEA R0, ERROR_MSG
+	PUTS
+	BRnzp END_FIND_OP_SUB
 				 
-				 
-				 
-				 
-				 
-RET
+END_FIND_OP_SUB			 
+	LD R7, BACKUP_R7_3600			 
+	RET
 ;-----------------------------------------------------------------------------------------------
 ; SUB_FIND_OPCODE local data
 ;-----------------------------------------------------------------------------------------------
+BACKUP_R7_3600			.BLKW #1
 opcodes_fo_ptr			.fill x4000
 instructions_fo_ptr		.fill x4100
+SUB_GET_STRING_PTR		.FILL x3800
+SUB_PRINT_OPCODE_PTR 	.FILL x3400
+INPUT_STRING_PTR		.FILL x4200
+ERROR_MSG 				.STRINGZ "invalid instruction\n"
+EQUAL                   .STRINGZ " = "
+newline					.FILL '\n'
 
 
 
@@ -189,17 +272,34 @@ instructions_fo_ptr		.fill x4100
 ; Return Value: None (the address in R2 does not need to be preserved)
 ;-----------------------------------------------------------------------------------------------
 .ORIG x3800
-				 
-				 
-				 
-				 
-				 
-RET
+;-----------------------------------------------------------------------------------------------
+ST R7,BACKUP_R7_3800
+
+AND R3, R3, x0
+LEA R0, INPUT_PROMPT
+PUTS					;Display input prompt
+
+ENTER_INSTRUCTION
+	GETC				;User enters character
+	OUT
+	ADD R3, R0, x0
+	ADD R3, R3, #-10
+	BRz END_GET_STRING_SUB
+	STR R0, R2, #0		;Store char into memory
+	ADD R2, R2, #1		;Increment Pointer
+	BRnp ENTER_INSTRUCTION
+	
+	
+END_GET_STRING_SUB
+	AND R0, R0, x0
+	LDR R0, R2, #0		;Null terminate input string
+	LD R7, BACKUP_R7_3800
+	RET
+
 ;-----------------------------------------------------------------------------------------------
 ; SUB_GET_STRING local data
-
-
-
+BACKUP_R7_3800 .BLKW #1
+INPUT_PROMPT .STRINGZ "Enter instruction: "
 ;===============================================================================================
 
 
